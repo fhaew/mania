@@ -159,11 +159,6 @@ function criarInterfaceUltimoResultado(){
 function atualizarAcertos() {
   document.querySelectorAll("#container .jogo").forEach(jogo => {
     let acertosJogo = 0;
-    const numerosCard = new Set();
-    jogo.querySelectorAll(".linha .ball").forEach(b => {
-      const num = parseInt(b.textContent);
-      if (!numerosCard.has(num)) numerosCard.add(num); // evita repetição no card
-    });
     jogo.querySelectorAll(".linha .ball").forEach(b => {
       const num = parseInt(b.textContent);
       if (ultimoResultado.includes(num)) {
@@ -174,7 +169,7 @@ function atualizarAcertos() {
       }
     });
     jogo.querySelectorAll("div").forEach(d => {
-      if (d.textContent.startsWith("Acertos:")) d.textContent = "Acertos: " + acertosJogo;
+      if(d.textContent.startsWith("Acertos:")) d.textContent = "Acertos: " + acertosJogo;
     });
   });
 }
@@ -188,12 +183,14 @@ function gerar56Jogos(){
   const container=document.getElementById("container");
   container.innerHTML="";
   let blocoDiv=null;
+
   todas.forEach((linhasJogo,i)=>{
     if(i%4===0){
       blocoDiv=document.createElement("div");
       blocoDiv.classList.add("bloco");
       container.appendChild(blocoDiv);
     }
+
     const jogoDiv=document.createElement("div");
     jogoDiv.classList.add("jogo");
 
@@ -205,6 +202,8 @@ function gerar56Jogos(){
     jogoDiv.appendChild(numeroJogo);
 
     const numerosUsados = new Set();
+    let totalNumeros = 0;
+
     linhasJogo.forEach(l=>{
       const linhaDiv=document.createElement("div");
       linhaDiv.classList.add("linha",`line-${l}`);
@@ -213,17 +212,36 @@ function gerar56Jogos(){
       labelDiv.textContent=l;
       linhaDiv.appendChild(labelDiv);
 
-      tabelaNumeros[l].forEach(n=>{
-        if (!numerosUsados.has(n)) { // evita repetição
-          const b=document.createElement("div");
-          b.classList.add("ball");
-          b.textContent=n;
-          linhaDiv.appendChild(b);
-          numerosUsados.add(n);
-        }
-      });
+      // Pega números da linha sem repetir dentro do card
+      let numsDisponiveis = tabelaNumeros[l].filter(n=>!numerosUsados.has(n));
+      shuffleArray(numsDisponiveis);
+
+      while (linhaDiv.childElementCount-1 < 13 && numsDisponiveis.length > 0 && totalNumeros < 50) {
+        const n = numsDisponiveis.pop();
+        const b=document.createElement("div");
+        b.classList.add("ball");
+        b.textContent=n;
+        linhaDiv.appendChild(b);
+        numerosUsados.add(n);
+        totalNumeros++;
+      }
+
       jogoDiv.appendChild(linhaDiv);
     });
+
+    // Caso faltem números para completar 50, preenche de forma aleatória de qualquer linha
+    let todasLinhas = letras.flatMap(l=>tabelaNumeros[l].filter(n=>!numerosUsados.has(n)));
+    shuffleArray(todasLinhas);
+    while(totalNumeros < 50 && todasLinhas.length > 0){
+      const n = todasLinhas.pop();
+      const b=document.createElement("div");
+      b.classList.add("ball");
+      b.textContent=n;
+      // Adiciona na última linha do card
+      jogoDiv.lastChild.appendChild(b);
+      numerosUsados.add(n);
+      totalNumeros++;
+    }
 
     const acertosDiv=document.createElement("div");
     acertosDiv.style.marginTop="5px";
@@ -233,6 +251,7 @@ function gerar56Jogos(){
 
     blocoDiv.appendChild(jogoDiv);
   });
+
   atualizarAcertos();
 }
 
@@ -250,8 +269,28 @@ document.getElementById("btnClear").addEventListener("click",()=>{
   ultimoResultado=Array(20).fill(null);
 });
 document.getElementById("btnComb").addEventListener("click",gerar56Jogos);
-document.getElementById("btnSave").addEventListener("click",salvarJogos);
-document.getElementById("btnLoad").addEventListener("click",carregarJogos);
+document.getElementById("btnSave").addEventListener("click",()=>{
+  const jogos=Array.from(document.querySelectorAll("#container .jogo")).map(j=>j.innerHTML);
+  if(jogos.length===0){alert("Não há jogos para salvar!"); return;}
+  localStorage.setItem("lotomaniaJogos",JSON.stringify(jogos));
+  alert("Jogos salvos!");
+});
+document.getElementById("btnLoad").addEventListener("click",()=>{
+  const jogosSalvos=JSON.parse(localStorage.getItem("lotomaniaJogos"));
+  if(!jogosSalvos||jogosSalvos.length===0){alert("Nenhum jogo salvo!"); return;}
+  const container=document.getElementById("container");
+  container.innerHTML="";
+  let blocoDiv=document.createElement("div");
+  blocoDiv.classList.add("bloco");
+  container.appendChild(blocoDiv);
+  jogosSalvos.forEach(html=>{
+    const jogoDiv=document.createElement("div");
+    jogoDiv.classList.add("jogo");
+    jogoDiv.innerHTML=html;
+    blocoDiv.appendChild(jogoDiv);
+  });
+  atualizarAcertos();
+});
 document.getElementById("btnToggleTabela").addEventListener("click",()=>{
   const tabelaDiv=document.getElementById("tabela");
   if(tabelaDiv.style.display==="none"||tabelaDiv.style.display===""){
