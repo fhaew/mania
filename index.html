@@ -27,7 +27,9 @@ button {padding:10px 15px;margin:5px;font-size:14px;cursor:pointer;border-radius
 .jogo {display:flex;flex-direction:column;gap:5px;border:2px solid #5ac48d;padding:10px;border-radius:8px;background:rgba(0,0,0,0.7);}
 .linha {display:flex;gap:3px;align-items:center;}
 .label {width:20px;text-align:center;font-weight:bold;margin-right:5px;}
-.ball {width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid transparent;}
+.ball {width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid transparent;transition: all 0.3s;}
+.ball.acerto {border:2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
+@keyframes glowGreen {from {box-shadow: 0 0 5px #32FF00;} to {box-shadow: 0 0 20px #32FF00;}}
 .line-A .ball {background:#FFA500;color:black;}
 .line-B .ball {background:#FFD700;color:black;}
 .line-C .ball {background:#90EE90;color:black;}
@@ -36,6 +38,12 @@ button {padding:10px 15px;margin:5px;font-size:14px;cursor:pointer;border-radius
 .line-F .ball {background:#ADFF2F;color:black;}
 .line-G .ball {background:#FF4500;color:white;}
 .line-H .ball {background:#800080;color:white;}
+
+#numeroContainerWrapper {display:flex;flex-direction:column;align-items:center;margin-bottom:20px;width:100%;}
+#numeroContainerWrapper div:first-child {margin-bottom:10px;font-weight:bold;font-size:16px;}
+#numeroContainer {display:flex;justify-content:center;flex-wrap:wrap;max-width:700px;gap:10px;background:rgba(0,0,0,0.5);padding:10px;border-radius:12px;}
+.numero {width:40px;height:40px;border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:text;user-select:none;background:rgba(0,0,0,0.2);color:white;font-weight:bold;text-align:center;font-size:16px;transition: all 0.3s;}
+.numero.preenchido {border:2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
 </style>
 </head>
 <body>
@@ -49,6 +57,11 @@ button {padding:10px 15px;margin:5px;font-size:14px;cursor:pointer;border-radius
   <button id="btnLoad">Carregar Jogos</button>
 </div>
 
+<div id="numeroContainerWrapper">
+  <div>Digite o último resultado</div>
+  <div id="numeroContainer"></div>
+</div>
+
 <div class="tabela-container">
   <div id="tabela"></div>
 </div>
@@ -57,7 +70,7 @@ button {padding:10px 15px;margin:5px;font-size:14px;cursor:pointer;border-radius
 <script>
 const letras=["A","B","C","D","E","F","G","H"];
 let tabelaNumeros={};
-const numerosQuentes=[11,22,33,44,55,66,77,88,99]; // Exemplo de números quentes
+let ultimoResultado=Array(20).fill(null);
 
 function shuffleArray(array){
   for(let i=array.length-1;i>0;i--){
@@ -82,7 +95,7 @@ function gerarCombinacoes(array,k){
 
 function criarTabela(){
   tabelaNumeros={};
-  const numeros=Array.from({length:90},(_,i)=>i+11); // 11..100
+  const numeros=Array.from({length:90},(_,i)=>i+11);
   shuffleArray(numeros);
   let index=0;
   const tabelaDiv=document.getElementById("tabela");
@@ -98,13 +111,12 @@ function criarTabela(){
     labelDiv.textContent=letra;
     linhaDiv.appendChild(labelDiv);
 
-    // Adicionar 13 números por linha + 2 números quentes aleatórios
     let numsLinha = [];
     for(let i=0;i<13;i++){
       if(index<numeros.length) numsLinha.push(numeros[index++]);
     }
-    shuffleArray(numerosQuentes);
-    numsLinha.push(numerosQuentes[0], numerosQuentes[1]);
+    shuffleArray([11,22,33,44,55,66,77,88,99]);
+    numsLinha.push(...[11,22,33,44,55,66,77,88,99].filter(n=>!numsLinha.includes(n)).slice(0,2));
     shuffleArray(numsLinha);
 
     tabelaNumeros[letra] = numsLinha;
@@ -117,7 +129,54 @@ function criarTabela(){
     });
     tabelaDiv.appendChild(linhaDiv);
   });
+
   document.getElementById("container").innerHTML="";
+}
+
+function criarInterfaceUltimoResultado(){
+  const container=document.getElementById("numeroContainer");
+  container.innerHTML="";
+  ultimoResultado = Array(20).fill(null);
+  for(let i=0;i<20;i++){
+    const numDiv=document.createElement("div");
+    numDiv.classList.add("numero");
+    numDiv.contentEditable = true;
+    numDiv.addEventListener("input",()=>{
+      let val = parseInt(numDiv.textContent);
+      if(!isNaN(val) && val>=1 && val<=100){
+        ultimoResultado[i] = val;
+        numDiv.classList.add("preenchido");
+      } else {
+        ultimoResultado[i] = null;
+        numDiv.classList.remove("preenchido");
+      }
+      atualizarAcertos();
+    });
+    container.appendChild(numDiv);
+  }
+}
+
+function atualizarAcertos() {
+  document.querySelectorAll("#container .jogo").forEach(jogo => {
+    let acertosJogo = 0;
+    const numerosCard = new Set();
+    jogo.querySelectorAll(".linha .ball").forEach(b => {
+      const num = parseInt(b.textContent);
+      if (!numerosCard.has(num)) numerosCard.add(num); // evita repetição no card
+    });
+    jogo.querySelectorAll(".linha .ball").forEach(b => {
+      const num = parseInt(b.textContent);
+      if (ultimoResultado.includes(num)) {
+        acertosJogo++;
+        b.classList.add("acerto");
+      } else {
+        b.classList.remove("acerto");
+      }
+    });
+    jogo.querySelectorAll("div").forEach(d => {
+      if (d.textContent.startsWith("Acertos:")) d.textContent = "Acertos: " + acertosJogo;
+    });
+  });
 }
 
 function gerar56Jogos(){
@@ -125,7 +184,7 @@ function gerar56Jogos(){
     alert("Primeiro gere a tabela!");
     return;
   }
-  const todas = gerarCombinacoes(letras,5); // 56 combinações
+  const todas = gerarCombinacoes(letras,5);
   const container=document.getElementById("container");
   container.innerHTML="";
   let blocoDiv=null;
@@ -137,6 +196,7 @@ function gerar56Jogos(){
     }
     const jogoDiv=document.createElement("div");
     jogoDiv.classList.add("jogo");
+
     const numeroJogo=document.createElement("div");
     numeroJogo.style.fontWeight="bold";
     numeroJogo.style.marginBottom="5px";
@@ -144,6 +204,7 @@ function gerar56Jogos(){
     numeroJogo.textContent="Jogo "+(i+1);
     jogoDiv.appendChild(numeroJogo);
 
+    const numerosUsados = new Set();
     linhasJogo.forEach(l=>{
       const linhaDiv=document.createElement("div");
       linhaDiv.classList.add("linha",`line-${l}`);
@@ -151,47 +212,42 @@ function gerar56Jogos(){
       labelDiv.classList.add("label");
       labelDiv.textContent=l;
       linhaDiv.appendChild(labelDiv);
+
       tabelaNumeros[l].forEach(n=>{
-        const b=document.createElement("div");
-        b.classList.add("ball");
-        b.textContent=n;
-        linhaDiv.appendChild(b);
+        if (!numerosUsados.has(n)) { // evita repetição
+          const b=document.createElement("div");
+          b.classList.add("ball");
+          b.textContent=n;
+          linhaDiv.appendChild(b);
+          numerosUsados.add(n);
+        }
       });
       jogoDiv.appendChild(linhaDiv);
     });
+
+    const acertosDiv=document.createElement("div");
+    acertosDiv.style.marginTop="5px";
+    acertosDiv.style.fontWeight="bold";
+    acertosDiv.textContent="Acertos: 0";
+    jogoDiv.appendChild(acertosDiv);
+
     blocoDiv.appendChild(jogoDiv);
   });
+  atualizarAcertos();
 }
 
-// Salvar e carregar
-function salvarJogos(){
-  const jogos=Array.from(document.querySelectorAll("#container .jogo")).map(j=>j.innerHTML);
-  if(jogos.length===0){alert("Não há jogos para salvar!"); return;}
-  localStorage.setItem("lotomaniaJogos",JSON.stringify(jogos));
-  alert("Jogos salvos!");
-}
-function carregarJogos(){
-  const jogosSalvos=JSON.parse(localStorage.getItem("lotomaniaJogos"));
-  if(!jogosSalvos||jogosSalvos.length===0){alert("Nenhum jogo salvo!"); return;}
-  const container=document.getElementById("container");
-  container.innerHTML="";
-  let blocoDiv=document.createElement("div");
-  blocoDiv.classList.add("bloco");
-  container.appendChild(blocoDiv);
-  jogosSalvos.forEach(html=>{
-    const jogoDiv=document.createElement("div");
-    jogoDiv.classList.add("jogo");
-    jogoDiv.innerHTML=html;
-    blocoDiv.appendChild(jogoDiv);
-  });
-}
-
-document.getElementById("btnGenerate").addEventListener("click",criarTabela);
+// Botões
+document.getElementById("btnGenerate").addEventListener("click",()=>{
+  criarTabela();
+  criarInterfaceUltimoResultado();
+});
 document.getElementById("btnClear").addEventListener("click",()=>{
   document.getElementById("container").innerHTML="";
   document.getElementById("tabela").innerHTML="";
   document.getElementById("tabela").style.display="none";
+  document.getElementById("numeroContainer").innerHTML="";
   tabelaNumeros={};
+  ultimoResultado=Array(20).fill(null);
 });
 document.getElementById("btnComb").addEventListener("click",gerar56Jogos);
 document.getElementById("btnSave").addEventListener("click",salvarJogos);
@@ -206,9 +262,7 @@ document.getElementById("btnToggleTabela").addEventListener("click",()=>{
     document.getElementById("btnToggleTabela").textContent="Mostrar Tabela";
   }
 });
-
-// Inicializa tabela
-criarTabela();
+document.getElementById("tabela").style.display="none";
 </script>
 </body>
 </html>
