@@ -118,6 +118,7 @@ button {
   gap: 0.3vw;
   align-items: center;
   flex-wrap: wrap;
+  overflow-x: hidden;
 }
 .label {
   width: 20px;
@@ -141,6 +142,7 @@ button {
 }
 .ball.acerto {border:2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
 @keyframes glowGreen {from {box-shadow: 0 0 5px #32FF00;} to {box-shadow: 0 0 20px #32FF00;}}
+
 .line-A .ball {background:#FFA500;color:black;}
 .line-B .ball {background:#FFD700;color:black;}
 .line-C .ball {background:#90EE90;color:black;}
@@ -192,7 +194,10 @@ button {
   transition: all 0.3s;
 }
 .numero.preenchido {border: 2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
+
+/* RESPONSIVO CELULAR: bolinhas alinhadas horizontalmente */
 @media screen and (max-width: 600px) {
+  .linha-tabela, .linha {flex-wrap: nowrap; overflow-x: auto;}
   .ball-tabela, .ball, .numero {width:10vw;height:10vw;max-width:35px;max-height:35px;font-size:0.8rem;}
   .jogo {min-width:200px;}
   button {flex:1 1 100px;font-size:0.9rem;padding:0.8vh 1vw;}
@@ -221,7 +226,6 @@ button {
 <div id="container"></div>
 
 <script>
-// JS original mantido
 const letras=["A","B","C","D","E","F","G","H"];
 let tabelaNumeros={};
 let ultimoResultado=Array(20).fill(null);
@@ -247,6 +251,7 @@ function gerarCombinacoes(array,k){
   return results;
 }
 
+// Criar tabela com números aleatórios
 function criarTabela(){
   tabelaNumeros={};
   const numeros=Array.from({length:90},(_,i)=>i+11);
@@ -266,16 +271,12 @@ function criarTabela(){
     linhaDiv.appendChild(labelDiv);
 
     let numsLinha = [];
-    for(let i=0;i<13;i++){
+    for(let i=0;i<11;i++){ // 11 números por linha
       if(index<numeros.length) numsLinha.push(numeros[index++]);
     }
-    shuffleArray([11,22,33,44,55,66,77,88,99]);
-    numsLinha.push(...[11,22,33,44,55,66,77,88,99].filter(n=>!numsLinha.includes(n)).slice(0,2));
-    shuffleArray(numsLinha);
+    tabelaNumeros[letra] = numsLinha.sort((a,b)=>a-b);
 
-    tabelaNumeros[letra] = numsLinha;
-
-    numsLinha.forEach(n=>{
+    tabelaNumeros[letra].forEach(n=>{
       const b=document.createElement("div");
       b.classList.add("ball-tabela");
       b.textContent=n;
@@ -366,33 +367,21 @@ function gerar56Jogos(){
       labelDiv.textContent=l;
       linhaDiv.appendChild(labelDiv);
 
-      let numsDisponiveis = tabelaNumeros[l].filter(n=>!numerosUsados.has(n));
-      shuffleArray(numsDisponiveis);
+      let numsDisponiveis = tabelaNumeros[l].filter(n=>!numerosUsados.has(n)).sort((a,b)=>a-b);
 
-      while (linhaDiv.childElementCount-1 < 13 && numsDisponiveis.length > 0 && totalNumeros < 50) {
-        const n = numsDisponiveis.pop();
-        const b=document.createElement("div");
-        b.classList.add("ball");
-        b.textContent=n;
-        linhaDiv.appendChild(b);
-        numerosUsados.add(n);
-        totalNumeros++;
-      }
+      numsDisponiveis.forEach(n=>{
+        if(totalNumeros<50 && linhaDiv.childElementCount-1<13){
+          const b=document.createElement("div");
+          b.classList.add("ball");
+          b.textContent=n;
+          linhaDiv.appendChild(b);
+          numerosUsados.add(n);
+          totalNumeros++;
+        }
+      });
 
       jogoDiv.appendChild(linhaDiv);
     });
-
-    let todasLinhas = letras.flatMap(l=>tabelaNumeros[l].filter(n=>!numerosUsados.has(n)));
-    shuffleArray(todasLinhas);
-    while(totalNumeros < 50 && todasLinhas.length > 0){
-      const n = todasLinhas.pop();
-      const b=document.createElement("div");
-      b.classList.add("ball");
-      b.textContent=n;
-      jogoDiv.lastChild.appendChild(b);
-      numerosUsados.add(n);
-      totalNumeros++;
-    }
 
     const acertosDiv=document.createElement("div");
     acertosDiv.style.marginTop="5px";
