@@ -196,12 +196,25 @@ button {
 .numero.preenchido {border: 2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
 
 /* RESPONSIVO CELULAR: bolinhas alinhadas horizontalmente */
+/* Responsivo apenas para celulares */
 @media screen and (max-width: 600px) {
-  .linha-tabela, .linha {flex-wrap: nowrap; overflow-x: auto;}
-  .ball-tabela, .ball, .numero {width:10vw;height:10vw;max-width:35px;max-height:35px;font-size:0.8rem;}
-  .jogo {min-width:200px;}
-  button {flex:1 1 100px;font-size:0.9rem;padding:0.8vh 1vw;}
+  .linha-tabela, .linha {flex-wrap: wrap; justify-content: center; overflow-x: hidden;}
+  .ball-tabela, .ball, .numero {
+    width: 8vw;        /* diminui tamanho das bolinhas */
+    max-width: 28px;
+    height: 8vw;
+    max-height: 28px;
+    font-size: 0.7rem;
+  }
+  .jogo {
+    min-width: auto;   /* ajusta largura automaticamente */
+    width: 95%;        /* ocupa quase toda a tela */
+    padding: 0.5vh 1vw;
+  }
+  button {flex:1 1 80px; font-size:0.85rem; padding:0.6vh 1vw;}
+  #numeroContainer {max-width: 90%; gap: 0.3vw;}
 }
+
 </style>
 </head>
 <body>
