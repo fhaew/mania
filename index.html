@@ -12,7 +12,7 @@ html, body {
   font-family: Arial,sans-serif;
   color: white;
   text-align: center;
-  overflow-x: hidden; /* impede rolagem horizontal */
+  overflow-x: hidden;
 }
 body {
   background-image: url('./img/robot.jpg');
@@ -41,7 +41,8 @@ button {
   display: flex;
   justify-content: center;
   margin: 2vh auto;
-  width: 100%;
+  width: 95%;
+  overflow-x: auto;
 }
 #tabela {
   display: none;
@@ -50,15 +51,13 @@ button {
   border-radius: 12px;
   flex-direction: column;
   gap: 0.5vh;
-  max-width: 100%;
-  overflow-x: hidden;
 }
 .linha-tabela {
   display: flex;
+  justify-content: flex-start;
   align-items: center;
   gap: 0.5vw;
   flex-wrap: wrap;
-  justify-content: center;
 }
 .label-tabela {
   width: 20px;
@@ -75,6 +74,7 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  border: 2px solid transparent;
   flex-shrink: 0;
 }
 .line-A .ball-tabela {background:#FFA500;color:black;}
@@ -85,16 +85,21 @@ button {
 .line-F .ball-tabela {background:#ADFF2F;color:black;}
 .line-G .ball-tabela {background:#FF4500;color:white;}
 .line-H .ball-tabela {background:#800080;color:white;}
-/* --- DESKTOP (padrão) --- */
+
 #container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* exatamente 3 colunas */
-  gap: 1rem;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 95%;
   margin: 0 auto;
 }
 .bloco {
-  display: contents; /* grid controla a distribuição */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2vw;
+  justify-content: center;
+  margin-bottom: 2vh;
+  width: 100%;
 }
 .jogo {
   display: flex;
@@ -104,28 +109,16 @@ button {
   padding: 1vh 1vw;
   border-radius: 8px;
   background: rgba(0,0,0,0.7);
-  width: 100%;
+  min-width: 250px;
+  max-width: 100%;
   box-sizing: border-box;
 }
-
-/* --- CELULAR --- */
-@media screen and (max-width: 600px) {
-  #container {
-    grid-template-columns: 1fr; /* 1 por linha */
-  }
-  .jogo {
-    width: 100%;
-    padding: 0.5vh 1vw;
-  }
-}
-
-
 .linha {
   display: flex;
   gap: 0.3vw;
   align-items: center;
   flex-wrap: wrap;
-  justify-content: center;
+  overflow-x: hidden;
 }
 .label {
   width: 20px;
@@ -147,8 +140,14 @@ button {
   transition: all 0.3s;
   flex-shrink: 0;
 }
+
+/* Fluorescente para acertos */
 .ball.acerto {border:2px solid #32FF00;animation: glowGreen 1s infinite alternate;}
-@keyframes glowGreen {from {box-shadow: 0 0 5px #32FF00;} to {box-shadow: 0 0 20px #32FF00;}}
+@keyframes glowGreen {
+  0% { box-shadow: 0 0 6px #32FF00; }
+  100% { box-shadow: 0 0 22px #32FF00; }
+}
+
 .line-A .ball {background:#FFA500;color:black;}
 .line-B .ball {background:#FFD700;color:black;}
 .line-C .ball {background:#90EE90;color:black;}
@@ -205,21 +204,25 @@ button {
 @media screen and (max-width: 600px) {
   .linha-tabela, .linha {flex-wrap: wrap; justify-content: center; overflow-x: hidden;}
   .ball-tabela, .ball, .numero {
-    width: 9vw;
-    height: 9vw;
+    width: 8vw;
     max-width: 28px;
+    height: 8vw;
     max-height: 28px;
     font-size: 0.7rem;
   }
-  #container {
-    grid-template-columns: 1fr; /* jogos ocupam 100% no celular */
-  }
   .jogo {
-    width: 100%;
+    min-width: auto;
+    width: 95%;
     padding: 0.5vh 1vw;
   }
   button {flex:1 1 80px; font-size:0.85rem; padding:0.6vh 1vw;}
   #numeroContainer {max-width: 90%; gap: 0.3vw;}
+}
+
+/* (opcional) PC: mantém layout original; sem alterar estrutura do celular */
+@media screen and (min-width: 1024px) {
+  .bloco {justify-content:center;}
+  .jogo {flex: 0 1 calc(33% - 2vw); max-width: 360px;}
 }
 </style>
 </head>
@@ -248,6 +251,12 @@ button {
 const letras=["A","B","C","D","E","F","G","H"];
 let tabelaNumeros={};
 let ultimoResultado=Array(20).fill(null);
+
+/* ==== NOVO: fontes para buscar último resultado ==== */
+const FONTES_RESULTADO = [
+  { url: 'https://servicebus2.caixa.gov.br/portaldeloterias/api/lotomania', tipo: 'caixa' },
+  { url: 'https://loteriascaixa-api.herokuapp.com/api/lotomania/latest', tipo: 'heroku' }
+];
 
 function shuffleArray(array){
   for(let i=array.length-1;i>0;i--){
@@ -290,7 +299,7 @@ function criarTabela(){
     linhaDiv.appendChild(labelDiv);
 
     let numsLinha = [];
-    for(let i=0;i<11;i++){ // 11 números por linha
+    for(let i=0;i<11;i++){
       if(index<numeros.length) numsLinha.push(numeros[index++]);
     }
     tabelaNumeros[letra] = numsLinha.sort((a,b)=>a-b);
@@ -310,7 +319,7 @@ function criarTabela(){
 function criarInterfaceUltimoResultado(){
   const container=document.getElementById("numeroContainer");
   container.innerHTML="";
-  ultimoResultado = Array(20).fill(null);
+  // Mantém a estrutura original: recria 20 campos editáveis
   for(let i=0;i<20;i++){
     const numDiv=document.createElement("div");
     numDiv.classList.add("numero");
@@ -327,6 +336,28 @@ function criarInterfaceUltimoResultado(){
       atualizarAcertos();
     });
     container.appendChild(numDiv);
+  }
+  // Se já temos resultado buscado, preenche a UI sem alterar a estrutura
+  if (ultimoResultado.every(v => typeof v === 'number')) {
+    preencherInterfaceUltimoResultado();
+  }
+}
+
+function preencherInterfaceUltimoResultado(){
+  const container = document.getElementById("numeroContainer");
+  if (container.children.length !== 20) {
+    criarInterfaceUltimoResultado();
+  }
+  for (let i=0;i<20;i++){
+    const el = container.children[i];
+    const val = ultimoResultado[i];
+    if (typeof val === 'number') {
+      el.textContent = val === 100 ? "100" : String(val);
+      el.classList.add("preenchido");
+    } else {
+      el.textContent = "";
+      el.classList.remove("preenchido");
+    }
   }
 }
 
@@ -414,11 +445,96 @@ function gerar56Jogos(){
   atualizarAcertos();
 }
 
-// Botões
-document.getElementById("btnGenerate").addEventListener("click",()=>{
+/* ===== NOVO: Busca do último resultado (com fallback) ===== */
+function normalizarDezenaStr(dz){
+  if (dz === "00" || dz === "0" || dz === 0) return 100; // Lotomania usa 00 para 100
+  const n = parseInt(dz,10);
+  return isNaN(n) ? null : n;
+}
+
+function extrairDezenas(obj){
+  // tenta chaves mais comuns primeiro
+  const chaves = ['listaDezenas','dezenas','dezenasOrdemSorteio','dezenasSorteadasOrdemSorteio'];
+  for (const k of chaves){
+    if (Array.isArray(obj?.[k]) && obj[k].length >= 20){
+      const arr = obj[k].map(normalizarDezenaStr).filter(v=>typeof v==='number');
+      if (arr.length >= 20) return arr.slice(0,20);
+    }
+  }
+  // varre qualquer array de 20 strings numéricas
+  for (const v of Object.values(obj)){
+    if (Array.isArray(v) && v.length >= 20 && v.every(x => typeof x === 'string' || typeof x === 'number')){
+      const arr = v.map(normalizarDezenaStr).filter(n => typeof n === 'number' && n>=1 && n<=100);
+      if (arr.length >= 20) return arr.slice(0,20);
+    }
+  }
+  return null;
+}
+
+async function buscarUltimoResultado(){
+  for (const fonte of FONTES_RESULTADO){
+    try{
+      const resp = await fetch(fonte.url, {cache:'no-store'});
+      if (!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      const dz = extrairDezenas(data);
+      if (dz && dz.length===20){
+        return dz;
+      }
+    }catch(e){
+      // tenta próxima fonte
+    }
+  }
+  throw new Error('Falha ao obter o último resultado');
+}
+
+async function atualizarResultadoEmTempoReal(){
+  try{
+    const dz = await buscarUltimoResultado();
+    // atualiza estado global e UI
+    ultimoResultado = dz;
+    preencherInterfaceUltimoResultado();
+    atualizarAcertos();
+  }catch(e){
+    // silencioso para não incomodar o usuário; mantém último estado
+  }
+}
+
+/* ===== NOVO: Resumo dos jogos salvos ===== */
+function gerarResumoPremiacoes(){
+  const jogos = Array.from(document.querySelectorAll("#container .jogo"));
+  if (jogos.length === 0){ alert("Nenhum jogo carregado!"); return; }
+
+  const categorias = {20:0,19:0,18:0,17:0,16:0,15:0,0:0};
+  let totalPremiadas = 0;
+
+  jogos.forEach(jogo=>{
+    let acertos = 0;
+    jogo.querySelectorAll(".linha .ball").forEach(b=>{
+      const n = parseInt(b.textContent);
+      if (ultimoResultado.includes(n)) acertos++;
+    });
+    if (categorias.hasOwnProperty(acertos)){
+      categorias[acertos]++; totalPremiadas++;
+    }
+  });
+
+  const linhas = [];
+  [20,19,18,17,16,15,0].forEach(p=>{
+    if (categorias[p] > 0) linhas.push(`${p} pontos: ${categorias[p]}`);
+  });
+  const msg = `Cartelas premiadas: ${totalPremiadas}` + (linhas.length? `\n${linhas.join('\n')}` : `\nNenhuma cartela premiada até agora.`);
+  alert(msg);
+}
+
+/* ===== Botões (mantida estrutura) ===== */
+document.getElementById("btnGenerate").addEventListener("click",async ()=>{
   criarTabela();
   criarInterfaceUltimoResultado();
+  // Busca automática ao gerar, sem alterar estrutura
+  await atualizarResultadoEmTempoReal();
 });
+
 document.getElementById("btnClear").addEventListener("click",()=>{
   document.getElementById("container").innerHTML="";
   document.getElementById("tabela").innerHTML="";
@@ -427,14 +543,17 @@ document.getElementById("btnClear").addEventListener("click",()=>{
   tabelaNumeros={};
   ultimoResultado=Array(20).fill(null);
 });
+
 document.getElementById("btnComb").addEventListener("click",gerar56Jogos);
+
 document.getElementById("btnSave").addEventListener("click",()=>{
   const jogos=Array.from(document.querySelectorAll("#container .jogo")).map(j=>j.innerHTML);
   if(jogos.length===0){alert("Não há jogos para salvar!"); return;}
   localStorage.setItem("lotomaniaJogos",JSON.stringify(jogos));
   alert("Jogos salvos!");
 });
-document.getElementById("btnLoad").addEventListener("click",()=>{
+
+document.getElementById("btnLoad").addEventListener("click",async ()=>{
   const jogosSalvos=JSON.parse(localStorage.getItem("lotomaniaJogos"));
   if(!jogosSalvos||jogosSalvos.length===0){alert("Nenhum jogo salvo!"); return;}
   const container=document.getElementById("container");
@@ -448,8 +567,20 @@ document.getElementById("btnLoad").addEventListener("click",()=>{
     jogoDiv.innerHTML=html;
     blocoDiv.appendChild(jogoDiv);
   });
-  atualizarAcertos();
+
+  // Botão RESUMO (um só, dentro da área de jogos salvos)
+  const btnResumo = document.createElement("button");
+  btnResumo.textContent = "Resumo";
+  btnResumo.id = "btnResumo";
+  btnResumo.style.marginTop = "10px";
+  btnResumo.addEventListener("click", gerarResumoPremiacoes);
+  container.appendChild(btnResumo);
+
+  // busca/atualiza acertos automaticamente
+  try { await atualizarResultadoEmTempoReal(); }
+  catch { atualizarAcertos(); }
 });
+
 document.getElementById("btnToggleTabela").addEventListener("click",()=>{
   const tabelaDiv=document.getElementById("tabela");
   if(tabelaDiv.style.display==="none"||tabelaDiv.style.display===""){
@@ -461,6 +592,15 @@ document.getElementById("btnToggleTabela").addEventListener("click",()=>{
   }
 });
 document.getElementById("tabela").style.display="none";
+
+/* ===== Disparo inicial + atualização periódica “tempo real” ===== */
+(async function init(){
+  // cria UI de resultado para receber preenchimento automático se quiser
+  criarInterfaceUltimoResultado();
+  await atualizarResultadoEmTempoReal();
+  // atualiza a cada 60s, sem alterar estrutura da página
+  setInterval(atualizarResultadoEmTempoReal, 60000);
+})();
 </script>
 </body>
 </html>
